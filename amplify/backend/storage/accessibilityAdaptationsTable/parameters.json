@@ -1,0 +1,27 @@
+{
+  "tableName": "accessibilityAdaptationsTable",
+  "partitionKeyName": "adaptationId",
+  "partitionKeyType": "S",
+  "sortKeyName": null,
+  "sortKeyType": null,
+  "region": "us-east-1",
+  "gsiList": [
+    {
+      "name": "byAlertId",
+      "partitionKeyName": "alertId",
+      "partitionKeyType": "S",
+      "sortKeyName": "createdAt",
+      "sortKeyType": "S",
+      "projectionType": "ALL"
+    },
+    {
+      "name": "byUserId",
+      "partitionKeyName": "userId",
+      "partitionKeyType": "S",
+      "sortKeyName": "createdAt",
+      "sortKeyType": "S",
+      "projectionType": "ALL"
+    }
+  ],
+  "billingMode": "PAY_PER_REQUEST"
+}

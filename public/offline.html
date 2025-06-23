@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <title>Offline - Real-Time Alert Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .offline-container {
+            text-align: center;
+            max-width: 500px;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .offline-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.8;
+        }
+
+        .offline-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .offline-message {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .offline-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .retry-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .retry-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .offline-features {
+            margin-top: 2rem;
+            text-align: left;
+        }
+
+        .offline-features h3 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            opacity: 0.9;
+        }
+
+        .feature-list li::before {
+            content: "✓";
+            margin-right: 0.75rem;
+            color: #4ade80;
+            font-weight: bold;
+        }
+
+        .connection-status {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            font-size: 0.9rem;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-offline {
+            background-color: #ef4444;
+        }
+
+        .status-online {
+            background-color: #22c55e;
+        }
+
+        @media (max-width: 600px) {
+            .offline-container {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+
+            .offline-title {
+                font-size: 1.5rem;
+            }
+
+            .offline-message {
+                font-size: 1rem;
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-icon">📡</div>
+        <h1 class="offline-title">You're Offline</h1>
+        <p class="offline-message">
+            Don't worry! The Real-Time Alert Platform works offline too. 
+            You can still access cached alerts and your saved preferences.
+        </p>
+
+        <div class="offline-actions">
+            <button class="retry-button" onclick="retryConnection()">
+                Try Again
+            </button>
+            <a href="/" class="retry-button">
+                Go to Dashboard
+            </a>
+        </div>
+
+        <div class="offline-features">
+            <h3>Available Offline Features:</h3>
+            <ul class="feature-list">
+                <li>View cached alerts</li>
+                <li>Access saved preferences</li>
+                <li>Browse alert history</li>
+                <li>Receive local notifications</li>
+                <li>Use basic map features</li>
+            </ul>
+        </div>
+
+        <div class="connection-status">
+            <span class="status-indicator status-offline pulse" id="statusIndicator"></span>
+            <span id="connectionStatus">Checking connection...</span>
+        </div>
+    </div>
+
+    <script>
+        let isOnline = navigator.onLine;
+        
+        function updateConnectionStatus() {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const connectionStatus = document.getElementById('connectionStatus');
+            
+            if (navigator.onLine) {
+                statusIndicator.className = 'status-indicator status-online';
+                connectionStatus.textContent = 'Connection restored! Redirecting...';
+                
+                // Redirect to main app after a short delay
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            } else {
+                statusIndicator.className = 'status-indicator status-offline pulse';
+                connectionStatus.textContent = 'No internet connection';
+            }
+        }
+
+        function retryConnection() {
+            const button = document.querySelector('.retry-button');
+            button.textContent = 'Checking...';
+            button.disabled = true;
+            
+            // Force a network check
+            fetch('/', { method: 'HEAD', cache: 'no-cache' })
+                .then(() => {
+                    // Online
+                    updateConnectionStatus();
+                })
+                .catch(() => {
+                    // Still offline
+                    button.textContent = 'Try Again';
+                    button.disabled = false;
+                    updateConnectionStatus();
+                });
+        }
+
+        // Listen for online/offline events
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+
+        // Initial status check
+        updateConnectionStatus();
+
+        // Periodic connection check
+        setInterval(() => {
+            if (!navigator.onLine) {
+                // Try to make a request to check if we're actually online
+                fetch('/', { method: 'HEAD', cache: 'no-cache' })
+                    .then(() => {
+                        // We're actually online, update status
+                        if (!isOnline) {
+                            isOnline = true;
+                            updateConnectionStatus();
+                        }
+                    })
+                    .catch(() => {
+                        // Still offline
+                        isOnline = false;
+                    });
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

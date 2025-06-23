@@ -1,0 +1,23 @@
+{
+  "tableName": "Users",
+  "partitionKeyName": "id",
+  "partitionKeyType": "S",
+  "sortKeyName": "username",
+  "sortKeyType": "S",
+  "region": "us-east-1",
+  "gsiName1": "byUsername",
+  "gsiPartitionKeyName1": "username",
+  "gsiPartitionKeyType1": "S",
+  "gsiSortKeyName1": "createdAt",
+  "gsiSortKeyType1": "S",
+  "gsiName2": "byEmail",
+  "gsiPartitionKeyName2": "email",
+  "gsiPartitionKeyType2": "S",
+  "gsiSortKeyName2": "createdAt",
+  "gsiSortKeyType2": "S",
+  "gsiName3": "byPhone",
+  "gsiPartitionKeyName3": "phone",
+  "gsiPartitionKeyType3": "S",
+  "gsiSortKeyName3": "createdAt",
+  "gsiSortKeyType3": "S"
+}

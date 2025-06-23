@@ -1,0 +1,416 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Lambda function for polling data sources with EventBridge scheduling",
+  "Parameters": {
+    "CloudWatchRule": {
+      "Type": "String",
+      "Default": "NONE",
+      "Description": "Enter the name of the CloudWatch rule to be created for scheduled polling"
+    },
+    "env": {
+      "Type": "String"
+    },
+    "alertsTableName": {
+      "Type": "String",
+      "Default": "alerts"
+    },
+    "alertCacheTableName": {
+      "Type": "String",
+      "Default": "alert-cache"
+    }
+  },
+  "Conditions": {
+    "ShouldNotCreateEnvResources": {
+      "Fn::Equals": [
+        {
+          "Ref": "env"
+        },
+        "NONE"
+      ]
+    }
+  },
+  "Resources": {
+    "LambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Handler": "src/lambda/pollDataSources.handler",
+        "FunctionName": {
+          "Fn::If": [
+            "ShouldNotCreateEnvResources",
+            "pollDataSources",
+            {
+              "Fn::Join": [
+                "",
+                [
+                  "pollDataSources-",
+                  {
+                    "Ref": "env"
+                  }
+                ]
+              ]
+            }
+          ]
+        },
+        "Environment": {
+          "Variables": {
+            "ENV": {
+              "Ref": "env"
+            },
+            "ALERTS_TABLE": {
+              "Ref": "alertsTableName"
+            },
+            "CACHE_TABLE": {
+              "Ref": "alertCacheTableName"
+            }
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaExecutionRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs14.x",
+        "Timeout": 300,
+        "MemorySize": 512
+      }
+    },
+    "LambdaExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": {
+          "Fn::If": [
+            "ShouldNotCreateEnvResources",
+            "pollDataSourcesLambdaRole",
+            {
+              "Fn::Join": [
+                "",
+                [
+                  "pollDataSourcesLambdaRole-",
+                  {
+                    "Ref": "env"
+                  }
+                ]
+              ]
+            }
+          ]
+        },
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "LambdaExecutionPolicy": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "lambda-execution-policy",
+        "Roles": [
+          {
+            "Ref": "LambdaExecutionRole"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+              ],
+              "Resource": {
+                "Fn::Sub": [
+                  "arn:aws:logs:${region}:${account}:log-group:/aws/lambda/${lambda}:log-stream:*",
+                  {
+                    "region": {
+                      "Fn::Sub": "${AWS::Region}"
+                    },
+                    "account": {
+                      "Fn::Sub": "${AWS::AccountId}"
+                    },
+                    "lambda": {
+                      "Fn::If": [
+                        "ShouldNotCreateEnvResources",
+                        "pollDataSources",
+                        {
+                          "Fn::Join": [
+                            "",
+                            [
+                              "pollDataSources-",
+                              {
+                                "Ref": "env"
+                              }
+                            ]
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "dynamodb:GetItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:Query",
+                "dynamodb:Scan"
+              ],
+              "Resource": [
+                {
+                  "Fn::Sub": [
+                    "arn:aws:dynamodb:${region}:${account}:table/${tablename}",
+                    {
+                      "region": {
+                        "Fn::Sub": "${AWS::Region}"
+                      },
+                      "account": {
+                        "Fn::Sub": "${AWS::AccountId}"
+                      },
+                      "tablename": {
+                        "Ref": "alertsTableName"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "Fn::Sub": [
+                    "arn:aws:dynamodb:${region}:${account}:table/${tablename}",
+                    {
+                      "region": {
+                        "Fn::Sub": "${AWS::Region}"
+                      },
+                      "account": {
+                        "Fn::Sub": "${AWS::AccountId}"
+                      },
+                      "tablename": {
+                        "Ref": "alertCacheTableName"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "AlertCacheTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": {
+          "Ref": "alertCacheTableName"
+        },
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "sourceId",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "sourceId",
+            "KeyType": "HASH"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "TimeToLiveSpecification": {
+          "AttributeName": "ttl",
+          "Enabled": true
+        }
+      }
+    },
+    "ScheduledRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Description": "Schedule rule for polling data sources",
+        "ScheduleExpression": "rate(15 minutes)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "LambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": {
+              "Ref": "LambdaFunction"
+            },
+            "Input": "{\"sourceTypes\":[\"usgs\",\"noaa\",\"cdc\"],\"options\":{}}"
+          }
+        ]
+      }
+    },
+    "PermissionForEventsToInvokeLambda": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "LambdaFunction"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "ScheduledRule",
+            "Arn"
+          ]
+        }
+      }
+    },
+    "USGSHourlyRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Description": "Schedule rule for polling USGS earthquake data hourly",
+        "ScheduleExpression": "rate(1 hour)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "LambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "USGSHourlyTarget",
+            "Input": "{\"sourceTypes\":[\"usgs\"],\"options\":{\"usgs\":{\"timeRange\":\"hour\",\"minMagnitude\":\"all\"}}}"
+          }
+        ]
+      }
+    },
+    "PermissionForUSGSRuleToInvokeLambda": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "LambdaFunction"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "USGSHourlyRule",
+            "Arn"
+          ]
+        }
+      }
+    },
+    "NOAAHourlyRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Description": "Schedule rule for polling NOAA weather data hourly",
+        "ScheduleExpression": "rate(1 hour)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "LambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "NOAAHourlyTarget",
+            "Input": "{\"sourceTypes\":[\"noaa\"],\"options\":{\"noaa\":{\"filters\":{\"status\":\"actual\"}}}}"
+          }
+        ]
+      }
+    },
+    "PermissionForNOAARuleToInvokeLambda": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "LambdaFunction"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "NOAAHourlyRule",
+            "Arn"
+          ]
+        }
+      }
+    },
+    "CDCDailyRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Description": "Schedule rule for polling CDC health data daily",
+        "ScheduleExpression": "rate(1 day)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "LambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "CDCDailyTarget",
+            "Input": "{\"sourceTypes\":[\"cdc\"],\"options\":{\"cdc\":{\"filters\":{\"days\":7}}}}"
+          }
+        ]
+      }
+    },
+    "PermissionForCDCRuleToInvokeLambda": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "LambdaFunction"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "CDCDailyRule",
+            "Arn"
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "Name": {
+      "Value": {
+        "Ref": "LambdaFunction"
+      }
+    },
+    "Arn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "LambdaFunction",
+          "Arn"
+        ]
+      }
+    },
+    "Region": {
+      "Value": {
+        "Ref": "AWS::Region"
+      }
+    },
+    "LambdaExecutionRole": {
+      "Value": {
+        "Ref": "LambdaExecutionRole"
+      }
+    },
+    "AlertCacheTable": {
+      "Value": {
+        "Ref": "AlertCacheTable"
+      }
+    }
+  }
+}

@@ -1,0 +1,141 @@
+.accessible-input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  width: 100%;
+}
+
+.accessible-input__label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.accessible-input__required {
+  color: var(--color-error);
+  font-weight: bold;
+}
+
+.accessible-input__wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.accessible-input__field {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  color: var(--color-text-primary);
+  background-color: var(--color-background);
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  transition: all var(--transition-fast);
+  min-height: 44px; /* WCAG minimum touch target size */
+}
+
+.accessible-input__field::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+.accessible-input__field:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.accessible-input__field:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.accessible-input__field--error {
+  border-color: var(--color-error);
+}
+
+.accessible-input__field--error:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.accessible-input__field--disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--color-surface);
+}
+
+.accessible-input--password .accessible-input__field {
+  padding-right: 3rem;
+}
+
+.accessible-input__password-toggle {
+  position: absolute;
+  right: var(--spacing-sm);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-muted);
+  transition: color var(--transition-fast);
+  min-height: 32px;
+  min-width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.accessible-input__password-toggle:hover {
+  color: var(--color-text-primary);
+}
+
+.accessible-input__password-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.accessible-input__help {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.accessible-input__error {
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* High contrast mode adjustments */
+[data-high-contrast="true"] .accessible-input__field {
+  border-width: 3px;
+}
+
+[data-high-contrast="true"] .accessible-input__field:focus-visible {
+  outline-width: 4px;
+}
+
+/* Large font size adjustments */
+[data-font-size="large"] .accessible-input__field,
+[data-font-size="extra-large"] .accessible-input__field {
+  min-height: 52px;
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+[data-font-size="large"] .accessible-input--password .accessible-input__field,
+[data-font-size="extra-large"] .accessible-input--password .accessible-input__field {
+  padding-right: 4rem;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .accessible-input__field {
+    transition: none;
+  }
+}

@@ -1,0 +1,154 @@
+.dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dashboard-header {
+  margin-bottom: var(--spacing-xl);
+}
+
+.dashboard-header h2 {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.dashboard-subtitle {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: auto auto;
+  gap: var(--spacing-xl);
+  grid-template-areas:
+    "map summary"
+    "map actions";
+}
+
+.dashboard-section {
+  background-color: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.section-title {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  padding: var(--spacing-lg);
+  margin: 0;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+}
+
+.map-section {
+  grid-area: map;
+  min-height: 32rem;
+}
+
+.summary-section {
+  grid-area: summary;
+}
+
+.actions-section {
+  grid-area: actions;
+}
+
+.map-container {
+  height: calc(100% - 4rem);
+  min-height: 28rem;
+  position: relative;
+}
+
+/* Tablet Layout */
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "map"
+      "summary"
+      "actions";
+  }
+  
+  .map-section {
+    min-height: 24rem;
+  }
+  
+  .map-container {
+    min-height: 20rem;
+  }
+}
+
+/* Mobile Layout */
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 0;
+  }
+  
+  .dashboard-header {
+    margin-bottom: var(--spacing-lg);
+    padding: 0 var(--spacing-sm);
+  }
+  
+  .dashboard-header h2 {
+    font-size: var(--font-size-2xl);
+  }
+  
+  .dashboard-subtitle {
+    font-size: var(--font-size-base);
+  }
+  
+  .dashboard-grid {
+    gap: var(--spacing-lg);
+  }
+  
+  .dashboard-section {
+    border-radius: var(--border-radius-md);
+    margin: 0 var(--spacing-sm);
+  }
+  
+  .section-title {
+    padding: var(--spacing-md);
+    font-size: var(--font-size-lg);
+  }
+  
+  .map-section {
+    min-height: 20rem;
+  }
+  
+  .map-container {
+    min-height: 16rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-header h2 {
+    font-size: var(--font-size-xl);
+  }
+  
+  .dashboard-grid {
+    gap: var(--spacing-md);
+  }
+  
+  .dashboard-section {
+    margin: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  
+  .map-section {
+    min-height: 16rem;
+  }
+  
+  .map-container {
+    min-height: 12rem;
+  }
+}

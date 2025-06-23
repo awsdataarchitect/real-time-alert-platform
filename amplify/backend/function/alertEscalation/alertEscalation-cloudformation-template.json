@@ -1,0 +1,219 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Step Function for alert escalation workflow",
+  "Parameters": {
+    "env": {
+      "Type": "String",
+      "Description": "Environment name"
+    },
+    "functionAlertEscalationArn": {
+      "Type": "String",
+      "Description": "ARN of the Lambda function for alert escalation"
+    },
+    "functionMultiChannelDeliveryArn": {
+      "Type": "String",
+      "Description": "ARN of the Lambda function for multi-channel delivery"
+    },
+    "deliveryStatusTableName": {
+      "Type": "String",
+      "Description": "Name of the delivery status DynamoDB table"
+    },
+    "deliveryStatusTableArn": {
+      "Type": "String",
+      "Description": "ARN of the delivery status DynamoDB table"
+    }
+  },
+  "Resources": {
+    "AlertEscalationStateMachine": {
+      "Type": "AWS::StepFunctions::StateMachine",
+      "Properties": {
+        "StateMachineName": {
+          "Fn::Join": [
+            "-",
+            [
+              "AlertEscalation",
+              {
+                "Ref": "env"
+              }
+            ]
+          ]
+        },
+        "RoleArn": {
+          "Fn::GetAtt": [
+            "AlertEscalationStateMachineRole",
+            "Arn"
+          ]
+        },
+        "DefinitionString": {
+          "Fn::Sub": "{\n  \"Comment\": \"Alert escalation workflow for unacknowledged alerts\",\n  \"StartAt\": \"CheckDeliveryStatus\",\n  \"States\": {\n    \"CheckDeliveryStatus\": {\n      \"Type\": \"Task\",\n      \"Resource\": \"${functionAlertEscalationArn}\",\n      \"Parameters\": {\n        \"action\": \"checkDeliveryStatus\",\n        \"deliveryId.$\": \"$.deliveryId\",\n        \"alertId.$\": \"$.alertId\",\n        \"userId.$\": \"$.userId\"\n      },\n      \"Next\": \"IsAcknowledged\"\n    },\n    \"IsAcknowledged\": {\n      \"Type\": \"Choice\",\n      \"Choices\": [\n        {\n          \"Variable\": \"$.acknowledged\",\n          \"BooleanEquals\": true,\n          \"Next\": \"AlertAcknowledged\"\n        }\n      ],\n      \"Default\": \"GetEscalationConfig\"\n    },\n    \"AlertAcknowledged\": {\n      \"Type\": \"Succeed\"\n    },\n    \"GetEscalationConfig\": {\n      \"Type\": \"Task\",\n      \"Resource\": \"${functionAlertEscalationArn}\",\n      \"Parameters\": {\n        \"action\": \"getEscalationConfig\",\n        \"userId.$\": \"$.userId\",\n        \"alertId.$\": \"$.alertId\",\n        \"deliveryId.$\": \"$.deliveryId\",\n        \"currentAttempt.$\": \"$.currentAttempt\"\n      },\n      \"Next\": \"ShouldEscalate\"\n    },\n    \"ShouldEscalate\": {\n      \"Type\": \"Choice\",\n      \"Choices\": [\n        {\n          \"Variable\": \"$.shouldEscalate\",\n          \"BooleanEquals\": false,\n          \"Next\": \"NoEscalationNeeded\"\n        }\n      ],\n      \"Default\": \"SelectAlternativeChannel\"\n    },\n    \"NoEscalationNeeded\": {\n      \"Type\": \"Succeed\"\n    },\n    \"SelectAlternativeChannel\": {\n      \"Type\": \"Task\",\n      \"Resource\": \"${functionAlertEscalationArn}\",\n      \"Parameters\": {\n        \"action\": \"selectAlternativeChannel\",\n        \"userId.$\": \"$.userId\",\n        \"alertId.$\": \"$.alertId\",\n        \"deliveryId.$\": \"$.deliveryId\",\n        \"currentAttempt.$\": \"$.currentAttempt\",\n        \"escalationConfig.$\": \"$.escalationConfig\",\n        \"previousChannels.$\": \"$.previousChannels\"\n      },\n      \"Next\": \"ChannelAvailable\"\n    },\n    \"ChannelAvailable\": {\n      \"Type\": \"Choice\",\n      \"Choices\": [\n        {\n          \"Variable\": \"$.channelAvailable\",\n          \"BooleanEquals\": false,\n          \"Next\": \"NoChannelsAvailable\"\n        }\n      ],\n      \"Default\": \"DeliverToAlternativeChannel\"\n    },\n    \"NoChannelsAvailable\": {\n      \"Type\": \"Task\",\n      \"Resource\": \"${functionAlertEscalationArn}\",\n      \"Parameters\": {\n        \"action\": \"logEscalationFailure\",\n        \"userId.$\": \"$.userId\",\n        \"alertId.$\": \"$.alertId\",\n        \"deliveryId.$\": \"$.deliveryId\",\n        \"reason\": \"No alternative channels available\"\n      },\n      \"End\": true\n    },\n    \"DeliverToAlternativeChannel\": {\n      \"Type\": \"Task\",\n      \"Resource\": \"${functionMultiChannelDeliveryArn}\",\n      \"Parameters\": {\n        \"alertId.$\": \"$.alertId\",\n        \"userId.$\": \"$.userId\",\n        \"isTimeSensitive\": true,\n        \"specificChannel.$\": \"$.selectedChannel\"\n      },\n      \"Next\": \"UpdateEscalationStatus\"\n    },\n    \"UpdateEscalationStatus\": {\n      \"Type\": \"Task\",\n      \"Resource\": \"${functionAlertEscalationArn}\",\n      \"Parameters\": {\n        \"action\": \"updateEscalationStatus\",\n        \"userId.$\": \"$.userId\",\n        \"alertId.$\": \"$.alertId\",\n        \"deliveryId.$\": \"$.deliveryId\",\n        \"currentAttempt.$\": \"$.currentAttempt\",\n        \"selectedChannel.$\": \"$.selectedChannel\",\n        \"deliveryResult.$\": \"$\"\n      },\n      \"Next\": \"WaitForAcknowledgment\"\n    },\n    \"WaitForAcknowledgment\": {\n      \"Type\": \"Wait\",\n      \"SecondsPath\": \"$.waitTime\",\n      \"Next\": \"IncrementAttempt\"\n    },\n    \"IncrementAttempt\": {\n      \"Type\": \"Task\",\n      \"Resource\": \"${functionAlertEscalationArn}\",\n      \"Parameters\": {\n        \"action\": \"incrementAttempt\",\n        \"userId.$\": \"$.userId\",\n        \"alertId.$\": \"$.alertId\",\n        \"deliveryId.$\": \"$.deliveryId\",\n        \"currentAttempt.$\": \"$.currentAttempt\",\n        \"escalationConfig.$\": \"$.escalationConfig\",\n        \"previousChannels.$\": \"$.previousChannels\",\n        \"selectedChannel.$\": \"$.selectedChannel\"\n      },\n      \"Next\": \"MaxAttemptsReached\"\n    },\n    \"MaxAttemptsReached\": {\n      \"Type\": \"Choice\",\n      \"Choices\": [\n        {\n          \"Variable\": \"$.maxAttemptsReached\",\n          \"BooleanEquals\": true,\n          \"Next\": \"EscalationComplete\"\n        }\n      ],\n      \"Default\": \"CheckDeliveryStatus\"\n    },\n    \"EscalationComplete\": {\n      \"Type\": \"Task\",\n      \"Resource\": \"${functionAlertEscalationArn}\",\n      \"Parameters\": {\n        \"action\": \"completeEscalation\",\n        \"userId.$\": \"$.userId\",\n        \"alertId.$\": \"$.alertId\",\n        \"deliveryId.$\": \"$.deliveryId\",\n        \"escalationSummary.$\": \"$.escalationSummary\"\n      },\n      \"End\": true\n    }\n  }\n}"
+        },
+        "TracingConfiguration": {
+          "Enabled": true
+        }
+      }
+    },
+    "AlertEscalationStateMachineRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "states.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "AlertEscalationStateMachinePolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:InvokeFunction"
+                  ],
+                  "Resource": [
+                    {
+                      "Ref": "functionAlertEscalationArn"
+                    },
+                    {
+                      "Ref": "functionMultiChannelDeliveryArn"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:UpdateItem",
+                    "dynamodb:Query"
+                  ],
+                  "Resource": [
+                    {
+                      "Ref": "deliveryStatusTableArn"
+                    },
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          {
+                            "Ref": "deliveryStatusTableArn"
+                          },
+                          "/index/*"
+                        ]
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "xray:PutTraceSegments",
+                    "xray:PutTelemetryRecords",
+                    "xray:GetSamplingRules",
+                    "xray:GetSamplingTargets"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "AlertEscalationEventRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Description": "EventBridge rule to trigger alert escalation for unacknowledged alerts",
+        "EventPattern": {
+          "source": [
+            "custom.alertDelivery"
+          ],
+          "detail-type": [
+            "AlertDelivered"
+          ]
+        },
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Ref": "AlertEscalationStateMachine"
+            },
+            "Id": "AlertEscalationTarget",
+            "RoleArn": {
+              "Fn::GetAtt": [
+                "EventBridgeToStepFunctionsRole",
+                "Arn"
+              ]
+            },
+            "InputPath": "$.detail"
+          }
+        ]
+      }
+    },
+    "EventBridgeToStepFunctionsRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "events.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "EventBridgeToStepFunctionsPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "states:StartExecution"
+                  ],
+                  "Resource": [
+                    {
+                      "Ref": "AlertEscalationStateMachine"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "AlertEscalationStateMachineArn": {
+      "Description": "ARN of the Alert Escalation State Machine",
+      "Value": {
+        "Ref": "AlertEscalationStateMachine"
+      }
+    },
+    "AlertEscalationEventRuleArn": {
+      "Description": "ARN of the EventBridge rule for alert escalation",
+      "Value": {
+        "Fn::GetAtt": [
+          "AlertEscalationEventRule",
+          "Arn"
+        ]
+      }
+    }
+  }
+}

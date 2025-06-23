@@ -1,0 +1,61 @@
+{
+  "tableName": "Alerts",
+  "partitionKeyName": "id",
+  "partitionKeyType": "S",
+  "sortKeyName": "sourceId",
+  "sortKeyType": "S",
+  "region": "us-east-1",
+  "gsiList": [
+    {
+      "name": "ByCategory",
+      "partitionKeyName": "category",
+      "partitionKeyType": "S",
+      "sortKeyName": "createdAt",
+      "sortKeyType": "S",
+      "projectionType": "ALL"
+    },
+    {
+      "name": "BySeverity",
+      "partitionKeyName": "severity",
+      "partitionKeyType": "S",
+      "sortKeyName": "createdAt",
+      "sortKeyType": "S",
+      "projectionType": "ALL"
+    },
+    {
+      "name": "ByStatus",
+      "partitionKeyName": "status",
+      "partitionKeyType": "S",
+      "sortKeyName": "createdAt",
+      "sortKeyType": "S",
+      "projectionType": "ALL"
+    },
+    {
+      "name": "ByLocation",
+      "partitionKeyName": "locationHash",
+      "partitionKeyType": "S",
+      "sortKeyName": "createdAt",
+      "sortKeyType": "S",
+      "projectionType": "ALL"
+    },
+    {
+      "name": "ByGeohash",
+      "partitionKeyName": "geohash",
+      "partitionKeyType": "S",
+      "sortKeyName": "createdAt",
+      "sortKeyType": "S",
+      "projectionType": "ALL"
+    }
+  ],
+  "lsiList": [
+    {
+      "name": "ByStartTime",
+      "sortKeyName": "startTime",
+      "sortKeyType": "S",
+      "projectionType": "ALL"
+    }
+  ],
+  "streamEnabled": true,
+  "streamViewType": "NEW_AND_OLD_IMAGES",
+  "billingMode": "PAY_PER_REQUEST"
+}

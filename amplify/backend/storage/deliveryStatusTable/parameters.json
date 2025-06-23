@@ -1,0 +1,59 @@
+{
+  "tableName": "DeliveryStatuses",
+  "partitionKeyName": "id",
+  "partitionKeyType": "S",
+  "sortKeyName": "alertId",
+  "sortKeyType": "S",
+  "region": "us-east-1",
+  "gsiList": [
+    {
+      "name": "ByAlert",
+      "partitionKeyName": "alertId",
+      "partitionKeyType": "S",
+      "sortKeyName": "status",
+      "sortKeyType": "S",
+      "projectionType": "ALL"
+    },
+    {
+      "name": "ByUser",
+      "partitionKeyName": "userId",
+      "partitionKeyType": "S",
+      "sortKeyName": "createdAt",
+      "sortKeyType": "S",
+      "projectionType": "ALL"
+    },
+    {
+      "name": "ByStatus",
+      "partitionKeyName": "status",
+      "partitionKeyType": "S",
+      "sortKeyName": "createdAt",
+      "sortKeyType": "S",
+      "projectionType": "ALL"
+    },
+    {
+      "name": "ByChannel",
+      "partitionKeyName": "channelType",
+      "partitionKeyType": "S",
+      "sortKeyName": "createdAt",
+      "sortKeyType": "S",
+      "projectionType": "ALL"
+    }
+  ],
+  "lsiList": [
+    {
+      "name": "BySentTime",
+      "sortKeyName": "sentAt",
+      "sortKeyType": "S",
+      "projectionType": "ALL"
+    },
+    {
+      "name": "ByDeliveredTime",
+      "sortKeyName": "deliveredAt",
+      "sortKeyType": "S",
+      "projectionType": "ALL"
+    }
+  ],
+  "streamEnabled": true,
+  "streamViewType": "NEW_AND_OLD_IMAGES",
+  "billingMode": "PAY_PER_REQUEST"
+}

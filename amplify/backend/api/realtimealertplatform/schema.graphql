@@ -1,0 +1,688 @@
+## GraphQL Schema for Real-Time Alert Platform
+
+# Directives for access control
+directive @auth(rules: [AuthRule!]!) on FIELD_DEFINITION | OBJECT | INTERFACE
+directive @aws_iam on FIELD_DEFINITION | OBJECT
+directive @aws_cognito_user_pools on FIELD_DEFINITION | OBJECT
+
+# Custom scalar types
+scalar AWSDateTime
+scalar AWSDate
+scalar AWSTime
+scalar AWSTimestamp
+scalar AWSEmail
+scalar AWSURL
+scalar AWSPhone
+scalar AWSIPAddress
+scalar AWSJSON
+scalar AWSGeolocation
+
+# Enums
+enum AlertStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  TEST
+}
+
+enum AlertSeverity {
+  EXTREME    # Extraordinary threat to life or property
+  SEVERE     # Significant threat to life or property
+  MODERATE   # Possible threat to life or property
+  MINOR      # Minimal to no known threat to life or property
+  UNKNOWN    # Severity unknown
+}
+
+enum AlertCertainty {
+  OBSERVED   # Determined to have occurred or to be ongoing
+  LIKELY     # Likely (p > ~50%)
+  POSSIBLE   # Possible but not likely (p <= ~50%)
+  UNLIKELY   # Not expected to occur (p ~ 0)
+  UNKNOWN    # Certainty unknown
+}
+
+enum AlertCategory {
+  WEATHER
+  EARTHQUAKE
+  TSUNAMI
+  VOLCANO
+  FIRE
+  FLOOD
+  HEALTH
+  SECURITY
+  INFRASTRUCTURE
+  TRANSPORTATION
+  OTHER
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  ACKNOWLEDGED
+  EXPIRED
+}
+
+enum DeliveryChannelType {
+  APP_NOTIFICATION
+  SMS
+  EMAIL
+  VOICE_CALL
+  SOCIAL_MEDIA
+  EMERGENCY_BROADCAST
+  MESH_NETWORK
+}
+
+# Interfaces
+interface Node {
+  id: ID!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+# Types
+type Alert implements Node
+@auth(rules: [
+  { allow: public, operations: [read] },
+  { allow: private, operations: [read] },
+  { allow: groups, groups: ["Administrators", "AlertManagers"], operations: [create, update, delete] }
+]) 
+@key(name: "byId", fields: ["id"])
+@key(name: "byCategory", fields: ["category", "createdAt"], queryField: "alertsByCategory")
+@key(name: "bySeverity", fields: ["severity", "createdAt"], queryField: "alertsBySeverity")
+@key(name: "byStatus", fields: ["status", "createdAt"], queryField: "alertsByStatus")
+@key(name: "byLocationHash", fields: ["locationHash", "createdAt"], queryField: "alertsByLocation")
+{
+  id: ID!
+  sourceId: String!
+  sourceType: String!
+  category: AlertCategory!
+  eventType: String!
+  subType: String
+  severity: AlertSeverity!
+  certainty: AlertCertainty!
+  headline: String!
+  description: String!
+  instructions: String
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  startTime: AWSDateTime!
+  endTime: AWSDateTime
+  status: AlertStatus!
+  location: Location!
+  locationHash: String!  # Geohash for efficient location-based queries
+  affectedAreas: [AffectedArea]
+  resources: [Resource]
+  parameters: AWSJSON
+  relatedAlerts: [Alert] @connection(name: "RelatedAlerts")
+  aiInsights: AIInsights
+  deliveryStatus: [DeliveryStatus] @connection(name: "AlertDeliveryStatus")
+  # Additional fields for tracking and management
+  version: Int!
+  lastProcessedAt: AWSDateTime
+  processedBy: String
+  consolidatedFrom: [ID]  # IDs of alerts that were consolidated into this one
+}
+
+type Location {
+  type: String!  # Point, Polygon, MultiPolygon
+  coordinates: AWSJSON!  # GeoJSON format
+}
+
+type AffectedArea {
+  areaId: String!
+  areaName: String!
+  areaType: String!
+  geometry: AWSJSON!  # GeoJSON format
+}
+
+type Resource {
+  resourceType: String!
+  mimeType: String!
+  uri: String!
+  description: String
+}
+
+type AIInsights {
+  analysis: String
+  recommendations: [String]
+  confidenceScore: Float
+  sources: [String]
+}
+
+type User implements Node
+@auth(rules: [
+  { allow: owner },
+  { allow: groups, groups: ["Administrators"], operations: [read, create, update, delete] }
+]) {
+  id: ID!
+  username: String!
+  email: AWSEmail
+  phone: AWSPhone
+  profile: UserProfile
+  locations: [UserLocation]
+  alertPreferences: AlertPreferences
+  notificationChannels: [NotificationChannel]
+  dashboardPreferences: DashboardPreferences
+  deviceTokens: [DeviceToken]
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  lastLogin: AWSDateTime
+  receivedAlerts: [DeliveryStatus] @connection(name: "UserDeliveryStatus")
+}
+
+type UserProfile {
+  name: String
+  language: String
+  accessibilityPreferences: AccessibilityPreferences
+}
+
+type AccessibilityPreferences {
+  preferredFormat: String
+  textSize: String
+  colorScheme: String
+  audioEnabled: Boolean
+  additionalNeeds: [String]
+}
+
+type UserLocation {
+  locationId: ID!
+  name: String!
+  type: String!
+  coordinates: Coordinates!
+  address: String
+  radius: Float
+}
+
+type Coordinates {
+  latitude: Float!
+  longitude: Float!
+}
+
+type AlertPreferences {
+  categories: [AlertCategory]
+  minSeverity: AlertSeverity
+  quietHours: QuietHours
+}
+
+type QuietHours {
+  enabled: Boolean!
+  start: AWSTime
+  end: AWSTime
+  overrideForCritical: Boolean!
+}
+
+type NotificationChannel {
+  channelType: DeliveryChannelType!
+  channelId: String!
+  priority: Int!
+  enabled: Boolean!
+}
+
+type DashboardPreferences {
+  defaultView: String
+  favoriteFilters: [String]
+  mapSettings: MapSettings
+}
+
+type MapSettings {
+  defaultZoom: Float
+  defaultCenter: Coordinates
+  layerVisibility: AWSJSON
+}
+
+type DeviceToken {
+  deviceId: ID!
+  platform: String!
+  token: String!
+  lastActive: AWSDateTime!
+}
+
+type DeliveryStatus implements Node
+@auth(rules: [
+  { allow: owner, ownerField: "userId" },
+  { allow: groups, groups: ["Administrators", "AlertManagers"], operations: [read, create, update, delete] }
+]) {
+  id: ID!
+  alertId: ID!
+  userId: ID!
+  channelType: DeliveryChannelType!
+  channelId: String!
+  status: DeliveryStatus!
+  sentAt: AWSDateTime
+  deliveredAt: AWSDateTime
+  acknowledgedAt: AWSDateTime
+  errorDetails: ErrorDetails
+  retryCount: Int
+  nextRetryAt: AWSDateTime
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  alert: Alert! @connection(name: "AlertDeliveryStatus")
+  user: User! @connection(name: "UserDeliveryStatus")
+}
+
+type ErrorDetails {
+  code: String!
+  message: String!
+  timestamp: AWSDateTime!
+}
+
+# Input types for mutations
+input CreateAlertInput {
+  sourceId: String!
+  sourceType: String!
+  category: AlertCategory!
+  eventType: String!
+  subType: String
+  severity: AlertSeverity!
+  certainty: AlertCertainty!
+  headline: String!
+  description: String!
+  instructions: String
+  startTime: AWSDateTime!
+  endTime: AWSDateTime
+  status: AlertStatus!
+  location: LocationInput!
+  locationHash: String
+  affectedAreas: [AffectedAreaInput]
+  resources: [ResourceInput]
+  parameters: AWSJSON
+  version: Int
+  lastProcessedAt: AWSDateTime
+  processedBy: String
+  consolidatedFrom: [ID]
+}
+
+input LocationInput {
+  type: String!
+  coordinates: AWSJSON!
+}
+
+input AffectedAreaInput {
+  areaId: String!
+  areaName: String!
+  areaType: String!
+  geometry: AWSJSON!
+}
+
+input ResourceInput {
+  resourceType: String!
+  mimeType: String!
+  uri: String!
+  description: String
+}
+
+input UpdateAlertInput {
+  id: ID!
+  severity: AlertSeverity
+  certainty: AlertCertainty
+  headline: String
+  description: String
+  instructions: String
+  endTime: AWSDateTime
+  status: AlertStatus
+  affectedAreas: [AffectedAreaInput]
+  resources: [ResourceInput]
+  parameters: AWSJSON
+  version: Int
+  lastProcessedAt: AWSDateTime
+  processedBy: String
+  consolidatedFrom: [ID]
+  aiInsights: AIInsightsInput
+}
+
+input CreateUserInput {
+  username: String!
+  email: AWSEmail
+  phone: AWSPhone
+  profile: UserProfileInput
+  locations: [UserLocationInput]
+  alertPreferences: AlertPreferencesInput
+  notificationChannels: [NotificationChannelInput]
+  dashboardPreferences: DashboardPreferencesInput
+}
+
+input UserProfileInput {
+  name: String
+  language: String
+  accessibilityPreferences: AccessibilityPreferencesInput
+}
+
+input AccessibilityPreferencesInput {
+  preferredFormat: String
+  textSize: String
+  colorScheme: String
+  audioEnabled: Boolean
+  additionalNeeds: [String]
+}
+
+input UserLocationInput {
+  name: String!
+  type: String!
+  coordinates: CoordinatesInput!
+  address: String
+  radius: Float
+}
+
+input CoordinatesInput {
+  latitude: Float!
+  longitude: Float!
+}
+
+input AlertPreferencesInput {
+  categories: [AlertCategory]
+  minSeverity: AlertSeverity
+  quietHours: QuietHoursInput
+}
+
+input QuietHoursInput {
+  enabled: Boolean!
+  start: AWSTime
+  end: AWSTime
+  overrideForCritical: Boolean!
+}
+
+input NotificationChannelInput {
+  channelType: DeliveryChannelType!
+  channelId: String!
+  priority: Int!
+  enabled: Boolean!
+}
+
+input DashboardPreferencesInput {
+  defaultView: String
+  favoriteFilters: [String]
+  mapSettings: MapSettingsInput
+}
+
+input MapSettingsInput {
+  defaultZoom: Float
+  defaultCenter: CoordinatesInput
+  layerVisibility: AWSJSON
+}
+
+input DeviceTokenInput {
+  deviceId: ID!
+  platform: String!
+  token: String!
+}
+
+input CreateDeliveryStatusInput {
+  alertId: ID!
+  userId: ID!
+  channelType: DeliveryChannelType!
+  channelId: String!
+  status: DeliveryStatus!
+}
+
+input UpdateDeliveryStatusInput {
+  id: ID!
+  status: DeliveryStatus
+  deliveredAt: AWSDateTime
+  acknowledgedAt: AWSDateTime
+  errorDetails: ErrorDetailsInput
+  retryCount: Int
+  nextRetryAt: AWSDateTime
+}
+
+input ErrorDetailsInput {
+  code: String!
+  message: String!
+  timestamp: AWSDateTime!
+}
+
+# Filter inputs for queries
+input AlertFilterInput {
+  category: AlertCategory
+  severity: AlertSeverity
+  status: AlertStatus
+  startTimeFrom: AWSDateTime
+  startTimeTo: AWSDateTime
+  location: LocationFilterInput
+  sourceId: String
+  sourceType: String
+  eventType: String
+  subType: String
+  locationHash: String
+}
+
+input LocationFilterInput {
+  nearPoint: CoordinatesInput
+  withinRadius: Float
+  withinBoundingBox: [CoordinatesInput]
+}
+
+input AIInsightsInput {
+  analysis: String
+  recommendations: [String]
+  confidenceScore: Float
+  sources: [String]
+}
+
+# Queries
+type Query {
+  # Alert queries
+  getAlert(id: ID!): Alert @auth(rules: [{ allow: public }, { allow: private }])
+  
+  listAlerts(
+    filter: AlertFilterInput
+    limit: Int
+    nextToken: String
+  ): AlertConnection @auth(rules: [{ allow: public }, { allow: private }])
+  
+  searchAlertsByLocation(
+    location: LocationFilterInput!
+    filter: AlertFilterInput
+    limit: Int
+    nextToken: String
+  ): AlertConnection @auth(rules: [{ allow: public }, { allow: private }])
+  
+  alertsByCategory(
+    category: AlertCategory!
+    createdAt: ModelStringKeyConditionInput
+    sortDirection: ModelSortDirection
+    filter: AlertFilterInput
+    limit: Int
+    nextToken: String
+  ): AlertConnection @auth(rules: [{ allow: public }, { allow: private }])
+  
+  alertsBySeverity(
+    severity: AlertSeverity!
+    createdAt: ModelStringKeyConditionInput
+    sortDirection: ModelSortDirection
+    filter: AlertFilterInput
+    limit: Int
+    nextToken: String
+  ): AlertConnection @auth(rules: [{ allow: public }, { allow: private }])
+  
+  alertsByStatus(
+    status: AlertStatus!
+    createdAt: ModelStringKeyConditionInput
+    sortDirection: ModelSortDirection
+    filter: AlertFilterInput
+    limit: Int
+    nextToken: String
+  ): AlertConnection @auth(rules: [{ allow: public }, { allow: private }])
+  
+  alertsByLocation(
+    locationHash: String!
+    createdAt: ModelStringKeyConditionInput
+    sortDirection: ModelSortDirection
+    filter: AlertFilterInput
+    limit: Int
+    nextToken: String
+  ): AlertConnection @auth(rules: [{ allow: public }, { allow: private }])
+  
+  # User queries
+  getUser(id: ID!): User @auth(rules: [{ allow: owner, ownerField: "id" }, { allow: groups, groups: ["Administrators"] }])
+  
+  listUsers(
+    limit: Int
+    nextToken: String
+  ): UserConnection @auth(rules: [{ allow: groups, groups: ["Administrators"] }])
+  
+  # DeliveryStatus queries
+  getDeliveryStatus(id: ID!): DeliveryStatus @auth(rules: [
+    { allow: owner, ownerField: "userId" }, 
+    { allow: groups, groups: ["Administrators", "AlertManagers"] }
+  ])
+  
+  listDeliveryStatuses(
+    alertId: ID
+    userId: ID
+    status: DeliveryStatus
+    limit: Int
+    nextToken: String
+  ): DeliveryStatusConnection @auth(rules: [
+    { allow: owner, ownerField: "userId" }, 
+    { allow: groups, groups: ["Administrators", "AlertManagers"] }
+  ])
+}
+
+# Sort direction for queries
+enum ModelSortDirection {
+  ASC
+  DESC
+}
+
+# String key condition input for queries
+input ModelStringKeyConditionInput {
+  eq: String
+  le: String
+  lt: String
+  ge: String
+  gt: String
+  between: [String]
+  beginsWith: String
+}
+
+# Webhook input types
+input WebhookAlertInput {
+  sourceId: String!
+  sourceType: String!
+  category: AlertCategory!
+  eventType: String!
+  subType: String
+  severity: AlertSeverity!
+  certainty: AlertCertainty!
+  headline: String!
+  description: String!
+  instructions: String
+  startTime: AWSDateTime!
+  endTime: AWSDateTime
+  status: AlertStatus!
+  location: LocationInput!
+  affectedAreas: [AffectedAreaInput]
+  resources: [ResourceInput]
+  parameters: AWSJSON
+}
+
+# Mutations
+type Mutation {
+  # Alert mutations
+  createAlert(input: CreateAlertInput!): Alert 
+  @auth(rules: [{ allow: groups, groups: ["Administrators", "AlertManagers"] }])
+  
+  updateAlert(input: UpdateAlertInput!): Alert 
+  @auth(rules: [{ allow: groups, groups: ["Administrators", "AlertManagers"] }])
+  
+  deleteAlert(id: ID!): Alert 
+  @auth(rules: [{ allow: groups, groups: ["Administrators", "AlertManagers"] }])
+  
+  consolidateAlerts(primaryAlertId: ID!, alertIdsToConsolidate: [ID!]!): Alert
+  @auth(rules: [{ allow: groups, groups: ["Administrators", "AlertManagers"] }])
+  
+  updateAlertAIInsights(alertId: ID!, aiInsights: AIInsightsInput!): Alert
+  @auth(rules: [{ allow: groups, groups: ["Administrators", "AlertManagers"] }])
+  
+  # Webhook mutations
+  ingestWebhookAlert(input: WebhookAlertInput!, apiKey: String!): Alert
+  @auth(rules: [{ allow: public }])
+  @aws_iam
+  
+  ingestWebhookAlerts(inputs: [WebhookAlertInput!]!, apiKey: String!): [Alert]
+  @auth(rules: [{ allow: public }])
+  @aws_iam
+  
+  # User mutations
+  createUser(input: CreateUserInput!): User 
+  @auth(rules: [{ allow: private }, { allow: groups, groups: ["Administrators"] }])
+  
+  updateUser(id: ID!, input: CreateUserInput!): User 
+  @auth(rules: [{ allow: owner, ownerField: "id" }, { allow: groups, groups: ["Administrators"] }])
+  
+  deleteUser(id: ID!): User 
+  @auth(rules: [{ allow: owner, ownerField: "id" }, { allow: groups, groups: ["Administrators"] }])
+  
+  addDeviceToken(userId: ID!, input: DeviceTokenInput!): User 
+  @auth(rules: [{ allow: owner, ownerField: "userId" }, { allow: groups, groups: ["Administrators"] }])
+  
+  # DeliveryStatus mutations
+  createDeliveryStatus(input: CreateDeliveryStatusInput!): DeliveryStatus 
+  @auth(rules: [{ allow: groups, groups: ["Administrators", "AlertManagers"] }])
+  
+  updateDeliveryStatus(input: UpdateDeliveryStatusInput!): DeliveryStatus 
+  @auth(rules: [
+    { allow: owner, ownerField: "userId" }, 
+    { allow: groups, groups: ["Administrators", "AlertManagers"] }
+  ])
+  
+  acknowledgeAlert(deliveryStatusId: ID!): DeliveryStatus 
+  @auth(rules: [{ allow: owner, ownerField: "userId" }])
+}
+
+# Subscriptions
+type Subscription {
+  # Alert subscriptions
+  onCreateAlert: Alert 
+  @aws_subscribe(mutations: ["createAlert"])
+  @auth(rules: [{ allow: public }, { allow: private }])
+  
+  onUpdateAlert: Alert 
+  @aws_subscribe(mutations: ["updateAlert"])
+  @auth(rules: [{ allow: public }, { allow: private }])
+  
+  onDeleteAlert: Alert 
+  @aws_subscribe(mutations: ["deleteAlert"])
+  @auth(rules: [{ allow: public }, { allow: private }])
+  
+  # Alert subscriptions by location
+  onAlertByLocation(
+    latitude: Float!
+    longitude: Float!
+    radiusInKm: Float!
+  ): Alert 
+  @aws_subscribe(mutations: ["createAlert", "updateAlert"])
+  @auth(rules: [{ allow: public }, { allow: private }])
+  
+  # User subscriptions
+  onUpdateUser: User 
+  @aws_subscribe(mutations: ["updateUser"])
+  @auth(rules: [{ allow: owner }])
+  
+  # DeliveryStatus subscriptions
+  onCreateDeliveryStatus(userId: ID!): DeliveryStatus 
+  @aws_subscribe(mutations: ["createDeliveryStatus"])
+  @auth(rules: [{ allow: owner, ownerField: "userId" }])
+  
+  onUpdateDeliveryStatus(userId: ID!): DeliveryStatus 
+  @aws_subscribe(mutations: ["updateDeliveryStatus"])
+  @auth(rules: [{ allow: owner, ownerField: "userId" }])
+}
+
+# Connection types for pagination
+type AlertConnection {
+  items: [Alert]
+  nextToken: String
+}
+
+type UserConnection {
+  items: [User]
+  nextToken: String
+}
+
+type DeliveryStatusConnection {
+  items: [DeliveryStatus]
+  nextToken: String
+}
