@@ -15,8 +15,7 @@ export class CDCHealthConnector extends BaseConnector {
   /**
    * Constructor for the CDCHealthConnector
    * @param {Object} options - Configuration options
-   * @param {string} options.apiKey - API key for CDC Health Alert Network API (required)
-   * @param {string} options.baseUrl - Base URL for the API (default: 'https://api.cdc.gov/v1/han')
+   * @param {string} options.baseUrl - Base URL for the API (default: 'https://data.cdc.gov/resource/')
    * @param {Object} options.filters - Filters for the API request
    */
   constructor(options = {}) {
@@ -26,13 +25,9 @@ export class CDCHealthConnector extends BaseConnector {
       sourceType: 'HEALTH'
     });
     
-    this.apiKey = options.apiKey;
-    this.baseUrl = options.baseUrl || 'https://api.cdc.gov/v1/han';
+    this.baseUrl = options.baseUrl || 'https://data.cdc.gov/resource/';
+    this.userAgent = options.userAgent || process.env.CDC_API_USER_AGENT || 'RealTimeAlertPlatform/1.0 (contact@example.com)';
     this.filters = options.filters || {};
-    
-    if (!this.apiKey) {
-      this.logger('Warning: CDC Health Alert Network API requires an API key');
-    }
   }
 
   /**
@@ -44,12 +39,8 @@ export class CDCHealthConnector extends BaseConnector {
   async fetchAlerts(options = {}) {
     const headers = {
       'Accept': 'application/json',
-      'User-Agent': '(real-time-alert-platform, contact@example.com)'
+      'User-Agent': this.userAgent
     };
-    
-    if (this.apiKey) {
-      headers['X-API-KEY'] = this.apiKey;
-    }
     
     // Add cache headers if available
     if (options.cacheHeaders) {

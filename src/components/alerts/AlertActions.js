@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { API, graphqlOperation } from 'aws-amplify';
+import { generateClient } from 'aws-amplify/data';
+
+const client = generateClient();
 
 const AlertActions = ({ alert }) => {
   const [acknowledging, setAcknowledging] = useState(false);
@@ -14,8 +16,8 @@ const AlertActions = ({ alert }) => {
       setActionError(null);
       
       // Get the delivery status ID for this alert for the current user
-      const deliveryStatusResponse = await API.graphql(
-        graphqlOperation(`
+      const deliveryStatusResponse = await client.graphql({
+        query: `
           query GetDeliveryStatusForAlert($alertId: ID!) {
             listDeliveryStatuses(
               alertId: $alertId,
@@ -27,8 +29,9 @@ const AlertActions = ({ alert }) => {
               }
             }
           }
-        `, { alertId: alert.id })
-      );
+        `,
+        variables: { alertId: alert.id }
+      });
       
       const deliveryStatuses = deliveryStatusResponse.data.listDeliveryStatuses.items;
       
@@ -36,8 +39,8 @@ const AlertActions = ({ alert }) => {
         const deliveryStatusId = deliveryStatuses[0].id;
         
         // Call the acknowledgeAlert mutation
-        await API.graphql(
-          graphqlOperation(`
+        await client.graphql({
+          query: `
             mutation AcknowledgeAlert($deliveryStatusId: ID!) {
               acknowledgeAlert(deliveryStatusId: $deliveryStatusId) {
                 id
@@ -45,8 +48,9 @@ const AlertActions = ({ alert }) => {
                 acknowledgedAt
               }
             }
-          `, { deliveryStatusId })
-        );
+          `,
+          variables: { deliveryStatusId }
+        });
         
         setActionSuccess('Alert acknowledged successfully');
       } else {

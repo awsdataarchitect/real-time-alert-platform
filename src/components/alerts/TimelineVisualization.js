@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { API, graphqlOperation } from 'aws-amplify';
+import { generateClient } from 'aws-amplify/api';
+const client = generateClient();
 import { listAlerts } from '../../graphql/queries';
 import { useFilter } from '../../context/FilterContext';
 import { useMap } from '../../context/MapContext';
@@ -46,8 +47,9 @@ const TimelineVisualization = () => {
         }
         
         // Fetch alerts within the date range
-        const response = await API.graphql(
-          graphqlOperation(listAlerts, {
+        const response = await client.graphql({
+          query: listAlerts,
+          variables: {
             filter: {
               startTime: {
                 between: [startDate.toISOString(), endDate.toISOString()]
@@ -55,8 +57,8 @@ const TimelineVisualization = () => {
               ...filters
             },
             limit: 1000 // Fetch a large number for timeline analysis
-          })
-        );
+          }
+        });
         
         const alerts = response.data.listAlerts.items;
         

@@ -167,7 +167,7 @@ describe('fetchAlerts Lambda function', () => {
       connectorOptions: {
         usgs: { timeRange: 'day' },
         noaa: { filters: { area: 'CA' } },
-        cdc: { apiKey: 'test-key' }
+        cdc: { userAgent: 'TestApp/1.0 (test@example.com)' }
       }
     };
     

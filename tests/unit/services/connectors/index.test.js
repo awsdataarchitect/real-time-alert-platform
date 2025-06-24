@@ -175,7 +175,7 @@ describe('connectors index module', () => {
       const options = {
         usgs: { timeRange: 'day' },
         noaa: { filters: { area: 'CA' } },
-        cdc: { apiKey: 'test-key' }
+        cdc: { userAgent: 'TestApp/1.0 (test@example.com)' }
       };
       
       // Mock connectors to resolve with empty arrays

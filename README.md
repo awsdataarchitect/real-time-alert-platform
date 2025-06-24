@@ -28,7 +28,7 @@ The Real-Time Alert Platform is designed to provide timely, relevant alerts abou
 - AWS CLI configured
 - Amplify CLI installed
 
-### Installation
+### Quick Start (5 minutes)
 
 1. Clone the repository
 ```bash
@@ -36,25 +36,25 @@ git clone https://github.com/awsdataarchitect/real-time-alert-platform.git
 cd real-time-alert-platform
 ```
 
-2. Install dependencies
+2. Install Amplify Gen2 dependencies
 ```bash
-npm install
+npm install aws-amplify@latest @aws-amplify/backend @aws-amplify/backend-cli react-scripts
 ```
 
-3. Initialize Amplify
+3. Start development sandbox (replaces amplify init + push)
 ```bash
-amplify init
+npm run amplify:sandbox
 ```
 
-4. Push Amplify resources
-```bash
-amplify push
-```
-
-5. Start the development server
+4. In another terminal, start the React app
 ```bash
 npm start
 ```
+
+### 📚 Documentation
+- **[Amplify Gen2 Quick Start](docs/amplify-gen2-quickstart.md)** - Fast setup guide
+- **[API Keys Setup](docs/api-keys-setup.md)** - External service configuration  
+- **[Deployment Guide](docs/deployment-guide.md)** - Complete deployment instructions
 
 ## Architecture
 

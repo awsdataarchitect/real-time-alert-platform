@@ -1,8 +1,14 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { useTheme } from './context/ThemeContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { AccessibilityProvider, useAccessibility } from './context/AccessibilityContext';
+import { MapProvider } from './context/MapContext';
+import { SimpleMapProvider } from './context/SimpleMapContext';
+import { FilterProvider } from './context/FilterContext';
+import { DashboardProvider } from './context/DashboardContext';
+import TestMapContext from './components/TestMapContext';
+import SimpleMapTest from './components/SimpleMapTest';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
@@ -116,13 +122,16 @@ const AppLayout = () => {
 
 function App() {
   return (
-    <AccessibilityProvider>
-      <AuthProvider>
-        <Router>
-          <AppLayout />
-        </Router>
-      </AuthProvider>
-    </AccessibilityProvider>
+    <SimpleMapProvider>
+      <div style={{ padding: '20px' }}>
+        <h1>Real-time Alert Platform</h1>
+        <SimpleMapTest />
+        <hr />
+        <MapProvider>
+          <TestMapContext />
+        </MapProvider>
+      </div>
+    </SimpleMapProvider>
   );
 }
 

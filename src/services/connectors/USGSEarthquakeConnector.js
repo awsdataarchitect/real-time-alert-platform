@@ -27,6 +27,7 @@ export class USGSEarthquakeConnector extends BaseConnector {
     });
     
     this.baseUrl = options.baseUrl || 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary';
+    this.userAgent = options.userAgent || process.env.USGS_API_USER_AGENT || 'RealTimeAlertPlatform/1.0 (contact@example.com)';
     this.timeRange = options.timeRange || 'hour';
     this.minMagnitude = options.minMagnitude || 'significant';
   }
@@ -39,7 +40,9 @@ export class USGSEarthquakeConnector extends BaseConnector {
    */
   async fetchEarthquakes(options = {}) {
     return this.fetchWithRetry(async (cacheHeaders) => {
-      const headers = {};
+      const headers = {
+        'User-Agent': this.userAgent
+      };
       
       // Add cache headers if available
       if (cacheHeaders) {

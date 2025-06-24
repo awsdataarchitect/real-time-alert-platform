@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { API, graphqlOperation } from 'aws-amplify';
+import { generateClient } from 'aws-amplify/api';
+const client = generateClient();
 import { useMap } from '../../context/MapContext';
 import AlertActions from './AlertActions';
 import AlertTimeline from './AlertTimeline';
@@ -18,8 +19,8 @@ const AlertDetail = ({ alertId, onClose }) => {
       
       try {
         setLoading(true);
-        const response = await API.graphql(
-          graphqlOperation(`
+        const response = await client.graphql({
+          query: `
             query GetAlertDetails($alertId: ID!) {
               getAlert(id: $alertId) {
                 id
@@ -64,8 +65,9 @@ const AlertDetail = ({ alertId, onClose }) => {
                 version
               }
             }
-          `, { alertId })
-        );
+          `,
+          variables: { alertId }
+        });
         
         const alertData = response.data.getAlert;
         setAlert(alertData);

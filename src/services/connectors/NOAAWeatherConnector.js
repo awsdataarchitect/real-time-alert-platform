@@ -28,6 +28,7 @@ export class NOAAWeatherConnector extends BaseConnector {
     
     this.apiKey = options.apiKey;
     this.baseUrl = options.baseUrl || 'https://api.weather.gov';
+    this.userAgent = options.userAgent || process.env.NOAA_API_USER_AGENT || 'RealTimeAlertPlatform/1.0 (contact@example.com)';
     this.filters = options.filters || {};
   }
 
@@ -40,6 +41,7 @@ export class NOAAWeatherConnector extends BaseConnector {
   async fetchAlerts(options = {}) {
     const headers = {
       'Accept': 'application/geo+json',
+      'User-Agent': this.userAgent,
       'User-Agent': '(real-time-alert-platform, contact@example.com)'
     };
     

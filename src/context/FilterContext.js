@@ -1,15 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { API, graphqlOperation } from 'aws-amplify';
-import { listAlerts, alertsByCategory, alertsBySeverity, alertsByStatus } from '../graphql/queries';
+import { generateClient } from 'aws-amplify/api';
+const client = generateClient();
+import { getMockAlerts } from '../services/mockData';
+// import { listAlerts, alertsByCategory, alertsBySeverity, alertsByStatus } from '../graphql/queries';
 import { filterAlerts, sortAlerts, paginateAlerts, createFilterInput } from '../utils/filterUtils';
 import { useMap } from './MapContext';
 
 const FilterContext = createContext();
 
 export const FilterProvider = ({ children }) => {
-  const { alerts: mapAlerts, setAlerts } = useMap();
+  // Remove dependency on MapContext to avoid circular dependency
+  // const { alerts: mapAlerts, setAlerts } = useMap();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [filteredAlerts, setFilteredAlerts] = useState([]);
   
   // Filter state
   const [filters, setFilters] = useState({
@@ -39,8 +43,7 @@ export const FilterProvider = ({ children }) => {
     hasPreviousPage: false
   });
   
-  // Filtered and sorted alerts
-  const [filteredAlerts, setFilteredAlerts] = useState([]);
+  // Filtered and sorted alerts (already declared above)
   
   // Available filter options
   const [availableCategories, setAvailableCategories] = useState([]);
@@ -54,49 +57,22 @@ export const FilterProvider = ({ children }) => {
       try {
         setLoading(true);
         
-        // If we have a category, severity, or status filter, use the specific query
-        let response;
+        // Use mock data for now
+        const response = await getMockAlerts();
+        let alerts = response.data.listAlerts.items;
+        
+        // Apply client-side filtering
         if (filters.category) {
-          response = await API.graphql(
-            graphqlOperation(alertsByCategory, {
-              category: filters.category,
-              sortDirection: sortDirection,
-              filter: createFilterInput(filters),
-              limit: 100
-            })
-          );
-          setFilteredAlerts(response.data.alertsByCategory.items);
-        } else if (filters.severity) {
-          response = await API.graphql(
-            graphqlOperation(alertsBySeverity, {
-              severity: filters.severity,
-              sortDirection: sortDirection,
-              filter: createFilterInput(filters),
-              limit: 100
-            })
-          );
-          setFilteredAlerts(response.data.alertsBySeverity.items);
-        } else if (filters.status) {
-          response = await API.graphql(
-            graphqlOperation(alertsByStatus, {
-              status: filters.status,
-              sortDirection: sortDirection,
-              filter: createFilterInput(filters),
-              limit: 100
-            })
-          );
-          setFilteredAlerts(response.data.alertsByStatus.items);
-        } else {
-          // Use the general list query
-          response = await API.graphql(
-            graphqlOperation(listAlerts, {
-              filter: createFilterInput(filters),
-              sortDirection: sortDirection,
-              limit: 100
-            })
-          );
-          setFilteredAlerts(response.data.listAlerts.items);
+          alerts = alerts.filter(alert => alert.category === filters.category);
         }
+        if (filters.severity) {
+          alerts = alerts.filter(alert => alert.severity === filters.severity);
+        }
+        if (filters.status) {
+          alerts = alerts.filter(alert => alert.isActive === (filters.status === 'ACTIVE'));
+        }
+        
+        setFilteredAlerts(alerts);
         
         // Apply client-side filtering for search text
         let filtered = [...response.data.listAlerts.items];
@@ -114,8 +90,7 @@ export const FilterProvider = ({ children }) => {
         setFilteredAlerts(paginatedAlerts);
         setPaginationInfo(pagination);
         
-        // Update map alerts if needed
-        setAlerts(paginatedAlerts);
+        // Note: Map alerts will be updated through MapContext directly
         
         // Extract available filter options
         setAvailableCategories([...new Set(response.data.listAlerts.items.map(a => a.category))]);
@@ -132,7 +107,7 @@ export const FilterProvider = ({ children }) => {
     };
 
     applyFiltersAndSort();
-  }, [filters, sortField, sortDirection, page, pageSize, setAlerts]);
+  }, [filters, sortField, sortDirection, page, pageSize]);
 
   // Update filter
   const updateFilter = (filterName, value) => {

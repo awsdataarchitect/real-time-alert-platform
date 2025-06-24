@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { API, graphqlOperation, Auth } from 'aws-amplify';
+import { generateClient } from 'aws-amplify/api';
+import { getCurrentUser } from 'aws-amplify/auth';
+const client = generateClient();
 import { 
   updateUserDashboardPreferences, 
   saveFavoriteFilter, 
@@ -12,8 +14,9 @@ import { useMap } from './MapContext';
 const DashboardContext = createContext();
 
 export const DashboardProvider = ({ children }) => {
-  const { filters } = useFilter();
-  const { mapSettings } = useMap();
+  // Remove dependencies to avoid circular dependency issues
+  // const { filters } = useFilter();
+  // const { mapSettings } = useMap();
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -38,7 +41,7 @@ export const DashboardProvider = ({ children }) => {
   useEffect(() => {
     const getCurrentUser = async () => {
       try {
-        const user = await Auth.currentAuthenticatedUser();
+        const user = await getCurrentUser();
         setCurrentUser(user);
         
         // Fetch user's dashboard preferences
@@ -57,27 +60,25 @@ export const DashboardProvider = ({ children }) => {
   const fetchUserPreferences = async (userId) => {
     try {
       setLoading(true);
-      const response = await API.graphql(
-        graphqlOperation(`
-          query GetUserPreferences($id: ID!) {
-            getUser(id: $id) {
-              id
-              dashboardPreferences {
-                defaultView
-                favoriteFilters
-                mapSettings {
-                  defaultZoom
-                  defaultCenter {
-                    latitude
-                    longitude
-                  }
-                  layerVisibility
-                }
+      // Use mock data for now until backend is deployed
+      const response = {
+        data: {
+          getUser: {
+            dashboardPreferences: {
+              defaultView: 'dashboard',
+              favoriteFilters: [],
+              mapSettings: {
+                defaultZoom: 3,
+                defaultCenter: {
+                  latitude: 37.0902,
+                  longitude: -95.7129
+                },
+                layerVisibility: {}
               }
             }
           }
-        `, { id: userId })
-      );
+        }
+      };
       
       const userPreferences = response.data.getUser.dashboardPreferences;
       
@@ -107,7 +108,7 @@ export const DashboardProvider = ({ children }) => {
       const filterConfig = {
         name: filterName,
         timestamp: new Date().toISOString(),
-        config: JSON.stringify(filters)
+        config: JSON.stringify({})
       };
       
       // Add to existing favorites
@@ -116,14 +117,15 @@ export const DashboardProvider = ({ children }) => {
         JSON.stringify(filterConfig)
       ];
       
-      // Update in backend
-      await API.graphql(
-        graphqlOperation(saveFavoriteFilter, {
-          userId: currentUser.username,
-          filterName,
-          currentFilters: updatedFavorites
-        })
-      );
+      // TODO: Update in backend when deployed
+      // await client.graphql({
+      //   query: saveFavoriteFilter,
+      //   variables: {
+      //     userId: currentUser.username,
+      //     filterName,
+      //     currentFilters: updatedFavorites
+      //   }
+      // });
       
       // Update local state
       setDashboardPreferences({
@@ -153,13 +155,14 @@ export const DashboardProvider = ({ children }) => {
       const updatedFavorites = [...dashboardPreferences.favoriteFilters];
       updatedFavorites.splice(filterIndex, 1);
       
-      // Update in backend
-      await API.graphql(
-        graphqlOperation(saveFavoriteFilter, {
-          userId: currentUser.username,
-          currentFilters: updatedFavorites
-        })
-      );
+      // TODO: Update in backend when deployed
+      // await client.graphql({
+      //   query: saveFavoriteFilter,
+      //   variables: {
+      //     userId: currentUser.username,
+      //     currentFilters: updatedFavorites
+      //   }
+      // });
       
       // Update local state
       setDashboardPreferences({
@@ -185,26 +188,29 @@ export const DashboardProvider = ({ children }) => {
     try {
       setLoading(true);
       
-      // Update in backend
-      await API.graphql(
-        graphqlOperation(updateMapSettings, {
+      // TODO: Update in backend when deployed
+      /*
+      await client.graphql({
+        query: updateMapSettings,
+        variables: {
           userId: currentUser.username,
-          defaultZoom: mapSettings.zoom,
+          defaultZoom: 3,
           defaultCenter: {
-            latitude: mapSettings.center.latitude,
-            longitude: mapSettings.center.longitude
+            latitude: 37.0902,
+            longitude: -95.7129
           },
-          layerVisibility: JSON.stringify(mapSettings.layerVisibility || {})
-        })
-      );
+          layerVisibility: JSON.stringify({})
+        }
+      });
+      */
       
       // Update local state
       setDashboardPreferences({
         ...dashboardPreferences,
         mapSettings: {
-          defaultZoom: mapSettings.zoom,
-          defaultCenter: mapSettings.center,
-          layerVisibility: JSON.stringify(mapSettings.layerVisibility || {})
+          defaultZoom: 3,
+          defaultCenter: { latitude: 37.0902, longitude: -95.7129 },
+          layerVisibility: JSON.stringify({})
         }
       });
       
@@ -226,13 +232,16 @@ export const DashboardProvider = ({ children }) => {
     try {
       setLoading(true);
       
-      // Update in backend
-      await API.graphql(
-        graphqlOperation(updateDefaultView, {
+      // TODO: Update in backend when deployed
+      /*
+      await client.graphql({
+        query: updateDefaultView,
+        variables: {
           userId: currentUser.username,
           defaultView: view
-        })
-      );
+        }
+      });
+      */
       
       // Update local state
       setDashboardPreferences({
@@ -258,13 +267,15 @@ export const DashboardProvider = ({ children }) => {
     try {
       setLoading(true);
       
-      // Update in backend
-      await API.graphql(
-        graphqlOperation(updateUserDashboardPreferences, {
+      // TODO: Update in backend when deployed
+      /*
+      await client.graphql({
+        query: updateUserDashboardPreferences,
+        variables: {
           userId: currentUser.username,
           dashboardPreferences: preferences
-        })
-      );
+        });
+      */
       
       // Update local state
       setDashboardPreferences(preferences);

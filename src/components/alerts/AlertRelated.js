@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { API, graphqlOperation } from 'aws-amplify';
+import { generateClient } from 'aws-amplify/api';
+const client = generateClient();
 import { useMap } from '../../context/MapContext';
 
 const AlertRelated = ({ alertId, eventType, subType }) => {
@@ -25,8 +26,8 @@ const AlertRelated = ({ alertId, eventType, subType }) => {
           filterParams.subType = { eq: subType };
         }
         
-        const response = await API.graphql(
-          graphqlOperation(`
+        const response = await client.graphql({
+          query: `
             query GetRelatedAlerts($filter: AlertFilterInput!, $limit: Int!) {
               listAlerts(
                 filter: $filter
@@ -46,11 +47,12 @@ const AlertRelated = ({ alertId, eventType, subType }) => {
                 }
               }
             }
-          `, { 
+          `,
+          variables: { 
             filter: filterParams,
             limit: 5
-          })
-        );
+          }
+        });
         
         // Filter out the current alert
         const alertsData = response.data.listAlerts.items.filter(

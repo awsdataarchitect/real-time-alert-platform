@@ -16,7 +16,7 @@ describe('CDCHealthConnector', () => {
     mockLogger = jest.fn();
     connector = new CDCHealthConnector({
       sourceId: 'test-cdc',
-      apiKey: 'test-api-key',
+      userAgent: 'TestApp/1.0 (test@example.com)',
       logger: mockLogger
     });
     
@@ -28,14 +28,14 @@ describe('CDCHealthConnector', () => {
     test('should initialize with provided options', () => {
       const customConnector = new CDCHealthConnector({
         sourceId: 'custom-cdc',
-        apiKey: 'custom-api-key',
+        userAgent: 'CustomApp/1.0 (custom@example.com)',
         baseUrl: 'https://custom-api.example.com',
         filters: { status: 'active' }
       });
       
       expect(customConnector.sourceId).toBe('custom-cdc');
       expect(customConnector.sourceType).toBe('HEALTH');
-      expect(customConnector.apiKey).toBe('custom-api-key');
+      expect(customConnector.userAgent).toBe('CustomApp/1.0 (custom@example.com)');
       expect(customConnector.baseUrl).toBe('https://custom-api.example.com');
       expect(customConnector.filters).toEqual({ status: 'active' });
     });
@@ -43,8 +43,8 @@ describe('CDCHealthConnector', () => {
     test('should initialize with default options when not provided', () => {
       expect(connector.sourceId).toBe('test-cdc');
       expect(connector.sourceType).toBe('HEALTH');
-      expect(connector.apiKey).toBe('test-api-key');
-      expect(connector.baseUrl).toBe('https://api.cdc.gov/v1/han');
+      expect(connector.userAgent).toBe('TestApp/1.0 (test@example.com)');
+      expect(connector.baseUrl).toBe('https://data.cdc.gov/resource/');
       expect(connector.filters).toEqual({});
     });
     
@@ -80,7 +80,7 @@ describe('CDCHealthConnector', () => {
     
     test('should include filters in params when provided', async () => {
       const filterConnector = new CDCHealthConnector({
-        apiKey: 'test-api-key',
+        userAgent: 'TestApp/1.0 (test@example.com)',
         filters: { region: 'US-CA', limit: 10 }
       });
       

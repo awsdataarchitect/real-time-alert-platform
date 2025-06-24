@@ -1,10 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { API, graphqlOperation } from 'aws-amplify';
-import { onCreateAlert, onUpdateAlert } from '../graphql/subscriptions';
+import { generateClient } from 'aws-amplify/api';
+const client = generateClient();
+import { getMockAlerts } from '../services/mockData';
+// import { onCreateAlert, onUpdateAlert } from '../graphql/subscriptions';
 
 const MapContext = createContext();
 
 export const MapProvider = ({ children }) => {
+  console.log('MapProvider rendering...');
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -20,36 +23,10 @@ export const MapProvider = ({ children }) => {
     const fetchAlerts = async () => {
       try {
         setLoading(true);
-        // Query for active alerts
-        const response = await API.graphql(
-          graphqlOperation(`
-            query ListActiveAlerts {
-              alertsByStatus(
-                status: ACTIVE
-                sortDirection: DESC
-                limit: 100
-              ) {
-                items {
-                  id
-                  headline
-                  description
-                  severity
-                  category
-                  location {
-                    type
-                    coordinates
-                  }
-                  createdAt
-                  startTime
-                  endTime
-                  status
-                }
-              }
-            }
-          `)
-        );
+        // Use mock data for now until backend is deployed
+        const response = await getMockAlerts();
         
-        const alertData = response.data.alertsByStatus.items;
+        const alertData = response.data.listAlerts.items;
         setAlerts(alertData);
         setLoading(false);
       } catch (err) {
@@ -62,11 +39,13 @@ export const MapProvider = ({ children }) => {
     fetchAlerts();
   }, []);
 
-  // Subscribe to new alerts
+  // Subscribe to new alerts (commented out until backend is deployed)
   useEffect(() => {
-    const createSubscription = API.graphql(
-      graphqlOperation(onCreateAlert)
-    ).subscribe({
+    // TODO: Enable subscriptions when backend is deployed
+    /*
+    const createSubscription = client.graphql({
+      query: onCreateAlert
+    }).subscribe({
       next: ({ value }) => {
         const newAlert = value.data.onCreateAlert;
         setAlerts(currentAlerts => [...currentAlerts, newAlert]);
@@ -74,9 +53,9 @@ export const MapProvider = ({ children }) => {
       error: (error) => console.error('Subscription error:', error),
     });
 
-    const updateSubscription = API.graphql(
-      graphqlOperation(onUpdateAlert)
-    ).subscribe({
+    const updateSubscription = client.graphql({
+      query: onUpdateAlert
+    }).subscribe({
       next: ({ value }) => {
         const updatedAlert = value.data.onUpdateAlert;
         setAlerts(currentAlerts => 
@@ -92,10 +71,12 @@ export const MapProvider = ({ children }) => {
       },
       error: (error) => console.error('Subscription error:', error),
     });
+    */
 
     return () => {
-      createSubscription.unsubscribe();
-      updateSubscription.unsubscribe();
+      // TODO: Uncomment when subscriptions are enabled
+      // createSubscription.unsubscribe();
+      // updateSubscription.unsubscribe();
     };
   }, [selectedAlert]);
 
@@ -103,8 +84,8 @@ export const MapProvider = ({ children }) => {
   const filterAlertsByLocation = async (latitude, longitude, radiusInKm) => {
     try {
       setLoading(true);
-      const response = await API.graphql(
-        graphqlOperation(`
+      const response = await client.graphql({
+        query: `
           query SearchAlertsByLocation($location: LocationFilterInput!) {
             searchAlertsByLocation(
               location: $location
@@ -128,13 +109,14 @@ export const MapProvider = ({ children }) => {
               }
             }
           }
-        `, {
+        `,
+        variables: {
           location: {
             nearPoint: { latitude, longitude },
             withinRadius: radiusInKm
           }
-        })
-      );
+        }
+      });
       
       const alertData = response.data.searchAlertsByLocation.items;
       setAlerts(alertData);
@@ -207,8 +189,11 @@ export const MapProvider = ({ children }) => {
 };
 
 export const useMap = () => {
+  console.log('useMap called...');
   const context = useContext(MapContext);
+  console.log('MapContext value:', context);
   if (context === undefined) {
+    console.error('MapContext is undefined! MapProvider not found.');
     throw new Error('useMap must be used within a MapProvider');
   }
   return context;

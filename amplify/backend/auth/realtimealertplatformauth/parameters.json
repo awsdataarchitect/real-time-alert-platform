@@ -1,1 +1,69 @@
-{\n  \"identityPoolName\": \"realtimealertplatform_identitypool\",\n  \"allowUnauthenticatedIdentities\": false,\n  \"resourceNameTruncated\": \"realti\",\n  \"userPoolName\": \"realtimealertplatform_userpool\",\n  \"autoVerifiedAttributes\": [\n    \"email\"\n  ],\n  \"mfaConfiguration\": \"OFF\",\n  \"mfaTypes\": [\n    \"SMS Text Message\"\n  ],\n  \"smsAuthenticationMessage\": \"Your authentication code is {####}\",\n  \"smsVerificationMessage\": \"Your verification code is {####}\",\n  \"emailVerificationSubject\": \"Your verification code\",\n  \"emailVerificationMessage\": \"Your verification code is {####}\",\n  \"defaultPasswordPolicy\": false,\n  \"passwordPolicyMinLength\": 8,\n  \"passwordPolicyCharacters\": [\n    \"Requires Lowercase\",\n    \"Requires Uppercase\",\n    \"Requires Numbers\",\n    \"Requires Symbols\"\n  ],\n  \"requiredAttributes\": [\n    \"email\"\n  ],\n  \"aliasAttributes\": [],\n  \"userpoolClientGenerateSecret\": false,\n  \"userpoolClientRefreshTokenValidity\": 30,\n  \"userpoolClientWriteAttributes\": [\n    \"email\",\n    \"name\",\n    \"phone_number\"\n  ],\n  \"userpoolClientReadAttributes\": [\n    \"email\",\n    \"name\",\n    \"phone_number\",\n    \"email_verified\",\n    \"phone_number_verified\"\n  ],\n  \"userpoolClientLambdaTriggers\": [],\n  \"userpoolClientSetAttributes\": false,\n  \"sharedId\": \"realtimealertplatformauth\",\n  \"resourceName\": \"realtimealertplatformauth\",\n  \"authSelections\": \"identityPoolAndUserPool\",\n  \"useDefault\": \"manual\",\n  \"usernameAttributes\": [\n    \"email\"\n  ],\n  \"userPoolGroups\": true,\n  \"userPoolGroupList\": [\n    \"Administrators\",\n    \"AlertManagers\",\n    \"Users\",\n    \"Guests\"\n  ],\n  \"adminQueries\": false,\n  \"thirdPartyAuth\": false,\n  \"authProviders\": [],\n  \"hostedUI\": false,\n  \"triggers\": {},\n  \"parentStack\": {\n    \"Ref\": \"AWS::StackId\"\n  },\n  \"permissions\": [],\n  \"dependsOn\": []\n}
+{
+  "identityPoolName": "realtimealertplatform_identitypool",
+  "allowUnauthenticatedIdentities": false,
+  "resourceNameTruncated": "realti",
+  "userPoolName": "realtimealertplatform_userpool",
+  "autoVerifiedAttributes": [
+    "email"
+  ],
+  "mfaConfiguration": "OFF",
+  "mfaTypes": [
+    "SMS Text Message"
+  ],
+  "smsAuthenticationMessage": "Your authentication code is {####}",
+  "smsVerificationMessage": "Your verification code is {####}",
+  "emailVerificationSubject": "Your verification code",
+  "emailVerificationMessage": "Your verification code is {####}",
+  "defaultPasswordPolicy": false,
+  "passwordPolicyMinLength": 8,
+  "passwordPolicyCharacters": [
+    "Requires Lowercase",
+    "Requires Uppercase",
+    "Requires Numbers",
+    "Requires Symbols"
+  ],
+  "requiredAttributes": [
+    "email"
+  ],
+  "aliasAttributes": [],
+  "userpoolClientGenerateSecret": false,
+  "userpoolClientRefreshTokenValidity": 30,
+  "userpoolClientWriteAttributes": [
+    "email",
+    "name",
+    "phone_number"
+  ],
+  "userpoolClientReadAttributes": [
+    "email",
+    "name",
+    "phone_number",
+    "email_verified",
+    "phone_number_verified"
+  ],
+  "userpoolClientLambdaTriggers": [],
+  "userpoolClientSetAttributes": false,
+  "sharedId": "realtimealertplatformauth",
+  "resourceName": "realtimealertplatformauth",
+  "authSelections": "identityPoolAndUserPool",
+  "useDefault": "manual",
+  "usernameAttributes": [
+    "email"
+  ],
+  "userPoolGroups": true,
+  "userPoolGroupList": [
+    "Administrators",
+    "AlertManagers",
+    "Users",
+    "Guests"
+  ],
+  "adminQueries": false,
+  "thirdPartyAuth": false,
+  "authProviders": [],
+  "hostedUI": false,
+  "triggers": {},
+  "parentStack": {
+    "Ref": "AWS::StackId"
+  },
+  "permissions": [],
+  "dependsOn": []
+}
