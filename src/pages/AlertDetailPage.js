@@ -4,22 +4,22 @@ import AlertDetail from '../components/alerts/AlertDetail';
 import { useMap } from '../context/MapContext';
 
 const AlertDetailPage = () => {
-  const { alertId } = useParams();
+  const { id } = useParams(); // Changed from alertId to id to match route param
   const navigate = useNavigate();
   const { setSelectedAlert } = useMap();
   
   // Set the selected alert in the map context when this page loads
   useEffect(() => {
-    if (alertId) {
+    if (id) {
       // This will highlight the alert on the map if it's visible
-      setSelectedAlert({ id: alertId });
+      setSelectedAlert({ id });
     }
     
     return () => {
       // Clear the selected alert when leaving the page
       setSelectedAlert(null);
     };
-  }, [alertId, setSelectedAlert]);
+  }, [id, setSelectedAlert]);
   
   const handleClose = () => {
     // Navigate back to the previous page or to the dashboard
@@ -28,7 +28,7 @@ const AlertDetailPage = () => {
   
   return (
     <div className="alert-detail-page">
-      <AlertDetail alertId={alertId} onClose={handleClose} />
+      <AlertDetail alertId={id} onClose={handleClose} />
     </div>
   );
 };

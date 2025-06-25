@@ -50,3 +50,5 @@ yarn-error.log*
 .vscode/
 *.swp
 *.swo
+
+server.log

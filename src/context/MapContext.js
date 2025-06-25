@@ -1,13 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { generateClient } from 'aws-amplify/api';
-const client = generateClient();
 import { getMockAlerts } from '../services/mockData';
 // import { onCreateAlert, onUpdateAlert } from '../graphql/subscriptions';
 
+const client = generateClient();
 const MapContext = createContext();
 
 export const MapProvider = ({ children }) => {
-  console.log('MapProvider rendering...');
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,7 +14,7 @@ export const MapProvider = ({ children }) => {
   const [mapSettings, setMapSettings] = useState({
     zoom: 3,
     center: { latitude: 37.0902, longitude: -95.7129 }, // Default to US center
-    style: 'mapbox://styles/mapbox/streets-v11',
+    style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json', // Free style that doesn't require token
   });
 
   // Fetch initial alerts
@@ -189,11 +188,8 @@ export const MapProvider = ({ children }) => {
 };
 
 export const useMap = () => {
-  console.log('useMap called...');
   const context = useContext(MapContext);
-  console.log('MapContext value:', context);
   if (context === undefined) {
-    console.error('MapContext is undefined! MapProvider not found.');
     throw new Error('useMap must be used within a MapProvider');
   }
   return context;

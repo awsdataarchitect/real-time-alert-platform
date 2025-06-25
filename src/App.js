@@ -15,6 +15,9 @@ import Sidebar from './components/layout/Sidebar';
 import Dashboard from './pages/Dashboard';
 import AlertDetailPage from './pages/AlertDetailPage';
 import Settings from './pages/Settings';
+import ActiveAlerts from './pages/ActiveAlerts';
+import AlertMap from './pages/AlertMap';
+import AlertHistory from './pages/AlertHistory';
 import { createSkipLink } from './utils/keyboardNavigation';
 import './config/amplify'; // Initialize Amplify configuration
 import './styles/App.css';
@@ -112,6 +115,30 @@ const AppLayout = () => {
                   </ProtectedRoute>
                 } 
               />
+              <Route 
+                path="/alerts" 
+                element={
+                  <ProtectedRoute requireAuth={true}>
+                    <ActiveAlerts />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/map" 
+                element={
+                  <ProtectedRoute requireAuth={true}>
+                    <AlertMap />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/history" 
+                element={
+                  <ProtectedRoute requireAuth={true}>
+                    <AlertHistory />
+                  </ProtectedRoute>
+                } 
+              />
             </Routes>
           </main>
         </div>
@@ -122,16 +149,23 @@ const AppLayout = () => {
 
 function App() {
   return (
-    <SimpleMapProvider>
-      <div style={{ padding: '20px' }}>
-        <h1>Real-time Alert Platform</h1>
-        <SimpleMapTest />
-        <hr />
-        <MapProvider>
-          <TestMapContext />
-        </MapProvider>
-      </div>
-    </SimpleMapProvider>
+    <Router>
+      <ThemeProvider>
+        <AccessibilityProvider>
+          <AuthProvider>
+            <MapProvider>
+              <SimpleMapProvider>
+                <FilterProvider>
+                  <DashboardProvider>
+                    <AppLayout />
+                  </DashboardProvider>
+                </FilterProvider>
+              </SimpleMapProvider>
+            </MapProvider>
+          </AuthProvider>
+        </AccessibilityProvider>
+      </ThemeProvider>
+    </Router>
   );
 }
 

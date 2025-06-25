@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { generateClient } from 'aws-amplify/api';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser as getAmplifyCurrentUser } from 'aws-amplify/auth';
 const client = generateClient();
 import { 
   updateUserDashboardPreferences, 
@@ -39,9 +39,9 @@ export const DashboardProvider = ({ children }) => {
 
   // Get current authenticated user
   useEffect(() => {
-    const getCurrentUser = async () => {
+    const fetchCurrentUser = async () => {
       try {
-        const user = await getCurrentUser();
+        const user = await getAmplifyCurrentUser();
         setCurrentUser(user);
         
         // Fetch user's dashboard preferences
@@ -53,7 +53,7 @@ export const DashboardProvider = ({ children }) => {
       }
     };
     
-    getCurrentUser();
+    fetchCurrentUser();
   }, []);
 
   // Fetch user preferences from the backend

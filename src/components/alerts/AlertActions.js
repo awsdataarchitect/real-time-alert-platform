@@ -1,164 +1,60 @@
-import React, { useState } from 'react';
-import { generateClient } from 'aws-amplify/data';
-
-const client = generateClient();
+import React from 'react';
+import './AlertDetail.css';
 
 const AlertActions = ({ alert }) => {
-  const [acknowledging, setAcknowledging] = useState(false);
-  const [sharing, setSharing] = useState(false);
-  const [actionError, setActionError] = useState(null);
-  const [actionSuccess, setActionSuccess] = useState(null);
-
-  // Function to acknowledge an alert
-  const acknowledgeAlert = async () => {
-    try {
-      setAcknowledging(true);
-      setActionError(null);
-      
-      // Get the delivery status ID for this alert for the current user
-      const deliveryStatusResponse = await client.graphql({
-        query: `
-          query GetDeliveryStatusForAlert($alertId: ID!) {
-            listDeliveryStatuses(
-              alertId: $alertId,
-              limit: 1
-            ) {
-              items {
-                id
-                status
-              }
-            }
-          }
-        `,
-        variables: { alertId: alert.id }
-      });
-      
-      const deliveryStatuses = deliveryStatusResponse.data.listDeliveryStatuses.items;
-      
-      if (deliveryStatuses && deliveryStatuses.length > 0) {
-        const deliveryStatusId = deliveryStatuses[0].id;
-        
-        // Call the acknowledgeAlert mutation
-        await client.graphql({
-          query: `
-            mutation AcknowledgeAlert($deliveryStatusId: ID!) {
-              acknowledgeAlert(deliveryStatusId: $deliveryStatusId) {
-                id
-                status
-                acknowledgedAt
-              }
-            }
-          `,
-          variables: { deliveryStatusId }
-        });
-        
-        setActionSuccess('Alert acknowledged successfully');
-      } else {
-        throw new Error('No delivery status found for this alert');
-      }
-    } catch (err) {
-      console.error('Error acknowledging alert:', err);
-      setActionError(err.message || 'Failed to acknowledge alert');
-    } finally {
-      setAcknowledging(false);
-    }
+  const handleShare = () => {
+    alert('Share functionality would be implemented here');
   };
 
-  // Function to share an alert
-  const shareAlert = async () => {
-    try {
-      setSharing(true);
-      setActionError(null);
-      
-      // Create a shareable URL
-      const shareUrl = `${window.location.origin}/alerts/${alert.id}`;
-      
-      // Use the Web Share API if available
-      if (navigator.share) {
-        await navigator.share({
-          title: alert.headline,
-          text: alert.description,
-          url: shareUrl
-        });
-        setActionSuccess('Alert shared successfully');
-      } else {
-        // Fallback to copying to clipboard
-        await navigator.clipboard.writeText(shareUrl);
-        setActionSuccess('Alert URL copied to clipboard');
-      }
-    } catch (err) {
-      console.error('Error sharing alert:', err);
-      setActionError(err.message || 'Failed to share alert');
-    } finally {
-      setSharing(false);
-    }
+  const handleSubscribe = () => {
+    alert('Subscribe functionality would be implemented here');
   };
 
-  // Function to export alert data
-  const exportAlertData = () => {
-    try {
-      setActionError(null);
-      
-      // Create a JSON blob
-      const alertData = JSON.stringify(alert, null, 2);
-      const blob = new Blob([alertData], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      
-      // Create a download link and trigger it
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `alert-${alert.id}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      
-      setActionSuccess('Alert data exported successfully');
-    } catch (err) {
-      console.error('Error exporting alert data:', err);
-      setActionError(err.message || 'Failed to export alert data');
-    }
+  const handleExport = () => {
+    alert('Export functionality would be implemented here');
+  };
+
+  const handleReport = () => {
+    alert('Report functionality would be implemented here');
   };
 
   return (
     <div className="alert-actions">
-      {actionError && (
-        <div className="alert-action-error" role="alert">
-          {actionError}
-        </div>
-      )}
+      <button 
+        className="action-button share-button"
+        onClick={handleShare}
+        aria-label="Share this alert"
+      >
+        <span className="action-icon">📤</span>
+        <span className="action-text">Share</span>
+      </button>
       
-      {actionSuccess && (
-        <div className="alert-action-success" role="status">
-          {actionSuccess}
-        </div>
-      )}
+      <button 
+        className="action-button subscribe-button"
+        onClick={handleSubscribe}
+        aria-label="Subscribe to updates"
+      >
+        <span className="action-icon">🔔</span>
+        <span className="action-text">Subscribe</span>
+      </button>
       
-      <div className="alert-action-buttons">
-        <button 
-          className="alert-action-button acknowledge-button"
-          onClick={acknowledgeAlert}
-          disabled={acknowledging}
-          aria-busy={acknowledging}
-        >
-          {acknowledging ? 'Acknowledging...' : 'Acknowledge Alert'}
-        </button>
-        
-        <button 
-          className="alert-action-button share-button"
-          onClick={shareAlert}
-          disabled={sharing}
-          aria-busy={sharing}
-        >
-          {sharing ? 'Sharing...' : 'Share Alert'}
-        </button>
-        
-        <button 
-          className="alert-action-button export-button"
-          onClick={exportAlertData}
-        >
-          Export Data
-        </button>
-      </div>
+      <button 
+        className="action-button export-button"
+        onClick={handleExport}
+        aria-label="Export alert data"
+      >
+        <span className="action-icon">📥</span>
+        <span className="action-text">Export</span>
+      </button>
+      
+      <button 
+        className="action-button report-button"
+        onClick={handleReport}
+        aria-label="Report an issue with this alert"
+      >
+        <span className="action-icon">⚠️</span>
+        <span className="action-text">Report</span>
+      </button>
     </div>
   );
 };

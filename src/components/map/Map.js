@@ -59,12 +59,27 @@ const Map = () => {
 
   // Handle marker click
   const handleMarkerClick = (alert) => {
-    setSelectedAlert(alert);
-    setPopupInfo({
-      longitude: parseFloat(JSON.parse(alert.location.coordinates).coordinates[0]),
-      latitude: parseFloat(JSON.parse(alert.location.coordinates).coordinates[1]),
-      alert
-    });
+    try {
+      if (!alert || !alert.location || !alert.location.coordinates) {
+        console.error('Invalid alert data for popup:', alert);
+        return;
+      }
+      
+      const coordData = JSON.parse(alert.location.coordinates);
+      if (!coordData || !coordData.coordinates || !Array.isArray(coordData.coordinates) || coordData.coordinates.length < 2) {
+        console.error('Invalid coordinates format:', coordData);
+        return;
+      }
+      
+      setSelectedAlert(alert);
+      setPopupInfo({
+        longitude: parseFloat(coordData.coordinates[0]),
+        latitude: parseFloat(coordData.coordinates[1]),
+        alert
+      });
+    } catch (err) {
+      console.error('Error processing alert for popup:', err);
+    }
   };
 
   // Close popup
@@ -142,7 +157,7 @@ const Map = () => {
         height="100%"
         mapStyle={mapSettings.style}
         onViewportChange={handleViewportChange}
-        mapboxApiAccessToken={process.env.REACT_APP_MAPBOX_TOKEN}
+        mapLib={import('maplibre-gl')}
       >
         {/* Navigation controls */}
         <NavigationControl position="top-right" />
@@ -155,10 +170,16 @@ const Map = () => {
         
         {/* Alert markers */}
         {alerts.map(alert => {
+          if (!alert || !alert.location || !alert.location.coordinates) {
+            return null;
+          }
+          
           try {
             const coordinates = JSON.parse(alert.location.coordinates);
             // Only show point markers
-            if (coordinates.type === 'Point') {
+            if (coordinates && coordinates.type === 'Point' && 
+                coordinates.coordinates && Array.isArray(coordinates.coordinates) && 
+                coordinates.coordinates.length >= 2) {
               return (
                 <AlertMarker
                   key={alert.id}

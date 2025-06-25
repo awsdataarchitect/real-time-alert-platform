@@ -5,6 +5,7 @@ import { useMap } from '../../context/MapContext';
 import AlertActions from './AlertActions';
 import AlertTimeline from './AlertTimeline';
 import AlertRelated from './AlertRelated';
+import { getMockAlertById } from '../../services/mockData';
 import './AlertDetail.css';
 
 const AlertDetail = ({ alertId, onClose }) => {
@@ -19,55 +20,9 @@ const AlertDetail = ({ alertId, onClose }) => {
       
       try {
         setLoading(true);
-        const response = await client.graphql({
-          query: `
-            query GetAlertDetails($alertId: ID!) {
-              getAlert(id: $alertId) {
-                id
-                sourceId
-                sourceType
-                category
-                eventType
-                subType
-                severity
-                certainty
-                headline
-                description
-                instructions
-                createdAt
-                updatedAt
-                startTime
-                endTime
-                status
-                location {
-                  type
-                  coordinates
-                }
-                affectedAreas {
-                  areaId
-                  areaName
-                  areaType
-                  geometry
-                }
-                resources {
-                  resourceType
-                  mimeType
-                  uri
-                  description
-                }
-                parameters
-                aiInsights {
-                  analysis
-                  recommendations
-                  confidenceScore
-                  sources
-                }
-                version
-              }
-            }
-          `,
-          variables: { alertId }
-        });
+        
+        // Use mock data instead of real API call
+        const response = await getMockAlertById(alertId);
         
         const alertData = response.data.getAlert;
         setAlert(alertData);

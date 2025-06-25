@@ -1,6 +1,5 @@
 import React from 'react';
 import Map from '../components/map/Map';
-import TestMapContext from '../components/TestMapContext';
 import AlertSummary from '../components/dashboard/AlertSummary';
 import QuickActions from '../components/dashboard/QuickActions';
 import './Dashboard.css';
@@ -19,7 +18,6 @@ const Dashboard = () => {
         <section className="dashboard-section map-section" aria-labelledby="map-heading">
           <h3 id="map-heading" className="section-title">Alert Map</h3>
           <div className="map-container">
-            <TestMapContext />
             <Map />
           </div>
         </section>
